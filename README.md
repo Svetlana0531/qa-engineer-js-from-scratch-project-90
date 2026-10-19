@@ -1,16 +1,100 @@
-# React + Vite
+# Автоматизация тестирования Канбан-доски (JS)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![hexlet-check](https://github.com/Svetlana0531/qa-engineer-js-from-scratch-project-90/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/Svetlana0531/qa-engineer-js-from-scratch-project-90/actions)
 
-Currently, two official plugins are available:
+Учебный проект автоматизации UI-тестирования в школе [Хекслет](https://ru.hexlet.io/). Тестирование сквозных сценариев (E2E) системы управления задачами (типа Redmine) выполнено с помощью фреймворка **Playwright** на языке **JavaScript** с применением паттерна **Page Object Model (POM)**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Само тестируемое приложение разработано на стеке **React + Vite**.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Цели и описание проекта
 
-## Expanding the ESLint configuration
+Проект предназначен для комплексной проверки стабильности интерфейса Канбан-доски. Автотесты покрывают следующие ключевые бизнес-требования:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Авторизация**: валидация входа в систему пользователей.
+- **Управление задачами**: создание новых карточек, редактирование содержимого, удаление и смена статусов (перетаскивание по колонкам канбан-доски: _draft_, _in progress_, _done_).
+- **Управление пользователями**: добавление новых учетных записей администратором.
+- **Метки и статусы**: создание пользовательских тегов («bug», «feature» и т.д.) и управление этапами жизненного цикла задач.
+
+**Архитектурный подход**: Локаторы элементов интерфейса и действия с ними изолированы внутри классов страниц. Логика тестов отделена от структуры верстки, что исключает дублирование и упрощает поддержку проекта.
+
+---
+
+## Установка и настройка
+
+Выполните эти шаги, чтобы развернуть проект и подготовить тестовое окружение на локальной машине.
+
+### 1. Требования к системе
+
+- **Node.js** версии 20.x или выше.
+- Менеджер пакетов **npm** (поставляется вместе с Node.js).
+
+### 2. Клонирование и переход в репозиторий
+
+```bash
+git clone https://github.com/Svetlana0531/qa-engineer-js-from-scratch-project-90.git
+cd qa-engineer-js-from-scratch-project-90
+```
+
+### 3. Установка зависимостей
+
+Команда установит все библиотеки для работы React/Vite, а также тестовые модули Playwright:
+
+```bash
+npm install
+```
+
+### 4. Установка браузеров Playwright
+
+Загрузите бинарные файлы браузеров (Chromium, Firefox, WebKit), необходимые для запуска тестов:
+
+```bash
+npx playwright install
+```
+
+---
+
+## Использование и запуск
+
+Для запуска тестов и локального сервера используются встроенные npm-команды.
+
+### Запуск автоматических тестов (Playwright)
+
+- **Запуск тестов в фоновом режиме (Headless):**
+  ```bash
+  npm run test
+  ```
+- **Запуск тестов с отображением браузера (Headed):**
+  ```bash
+  npx playwright test --headed
+  ```
+- **Запуск в интерактивном UI-режиме (удобно для отладки):**
+  ```bash
+  npx playwright test --ui
+  ```
+- **Просмотр HTML-отчета о прохождении тестов:**
+  ```bash
+  npx playwright show-report
+  ```
+
+### Локальный запуск приложения (при необходимости)
+
+- **Запуск сервера разработки:**
+  ```bash
+  npm run dev
+  ```
+  После этого интерфейс доски будет доступен по адресу `http://localhost:5173`.
+
+---
+
+<details>
+<summary> Автоматические тесты Хекслета</summary>
+
+Тесты запускаются автоматически на каждый коммит (Continuous Integration). За запуск процессов отвечает конфигурационный файл `.github/workflows/hexlet-check.yml` — не удаляйте и не переименовывайте ни его, ни репозиторий.
+
+</details>
+
+## О Хекслете
+
+[Хекслет](https://ru.hexlet.io/) — школа программирования. Авторские программы обучения включают в себя много часов практики в интерактивных тренажерах, поддержку наставников-экспертов и реальные проекты, которые формируют сильное портфолио разработчиков и QA-инженеров.
