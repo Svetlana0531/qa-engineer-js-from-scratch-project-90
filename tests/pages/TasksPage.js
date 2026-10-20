@@ -87,4 +87,47 @@ export class TasksPage {
 
     await this.page.waitForLoadState('networkidle');
   }
+
+  async deleteTask(taskId) {
+    await this.openEditForm(taskId);
+    
+    const deleteButton = this.page.locator('button:has-text("Delete"), button:has-text("Удалить")').first();
+    await deleteButton.click();
+
+  }
+
+  async openEditForm(taskId) {
+    await this.page.goto(`/#/tasks/${taskId}`);
+    await this.page.waitForLoadState('networkidle');
+    
+    await this.titleInput.waitFor({ state: 'visible', timeout: 5000 });
+  }
+
+
+    async updateTask(title, content, assigneeName = null, statusName = null) {
+    await this.titleInput.waitFor({ state: 'visible' });
+    await this.titleInput.clear();
+    await this.titleInput.fill(title);
+    
+    await this.contentInput.clear();
+    await this.contentInput.fill(content);
+
+    if (assigneeName) {
+      await this.assigneeSelect.locator('input, [role="button"]').first().click();
+      await this.page.locator(`li[role="option"]:has-text("${assigneeName}")`).first().click({ force: true });
+    }
+
+    if (statusName) {
+      await this.statusSelect.locator('input, [role="button"]').first().click();
+      
+      const option = this.page.locator(`li[role="option"]:has-text("${statusName}")`).first();
+      await option.waitFor({ state: 'attached', timeout: 3000 });
+      
+      await option.click({ force: true });
+    }
+
+    await this.saveButton.click();
+    await this.page.waitForLoadState('networkidle');
+  }
+
 }

@@ -93,4 +93,42 @@ test.describe('Tasks and Kanban Board E2E Flow', () => {
       }
     }
   });
+      test('should successfully edit an existing task', async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+    
+    const cardsCount = await tasksPage.anyTaskCard.count();
+    if (cardsCount > 0) {
+      const firstCard = tasksPage.anyTaskCard.first();
+      const taskId = await firstCard.getAttribute('data-rfd-draggable-id');
+
+      if (taskId) {
+        await tasksPage.openEditForm(taskId); 
+
+        const updatedTitle = `UpdatedTitle_${Date.now()}`;
+        
+        await tasksPage.updateTask(updatedTitle, 'Updated task description');
+
+        await tasksPage.navigateToTasks();
+        await expect(page.locator(`div:has-text("${updatedTitle}")`).first()).toBeVisible();
+      }
+    }
+  });
+
+  test('should successfully delete a task', async ({ page }) => {
+    await page.waitForLoadState('networkidle');
+    
+    const cardsCount = await tasksPage.anyTaskCard.count();
+    if (cardsCount > 0) {
+      const firstCard = tasksPage.anyTaskCard.first();
+      const taskId = await firstCard.getAttribute('data-rfd-draggable-id');
+      const taskText = await firstCard.innerText();
+
+      if (taskId) {
+        await tasksPage.deleteTask(taskId);
+
+        await page.waitForLoadState('networkidle');
+        await expect(tasksPage.taskCard(taskId)).not.toBeVisible();
+      }
+    }
+  });
 });
