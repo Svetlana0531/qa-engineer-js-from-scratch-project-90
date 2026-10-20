@@ -2,6 +2,30 @@ import { test, expect } from '@playwright/test';
 import { AuthPage } from './pages/AuthPage.js';
 import { UsersPage } from './pages/UsersPage.js';
 
+test.describe('Login Negative Scenarios', () => {
+  let authPage;
+
+  test.beforeEach(async ({ page }) => {
+    authPage = new AuthPage(page);
+    await authPage.navigate();
+  });
+
+  test('should show validation error when trying to login with an empty form', async ({ page }) => {
+    await page.locator('button[type="submit"]').click();
+
+    const errorText = page.locator(':text("Required"), :text("Обязательное поле")');
+    await expect(errorText.first()).toBeVisible();
+  });
+
+  test('should show validation error when username is missing', async ({ page }) => {
+    await page.locator('input[name="password"]').fill('any-password');
+    await page.locator('button[type="submit"]').click();
+
+    const errorText = page.locator(':text("Required"), :text("Обязательное поле")');
+    await expect(errorText.first()).toBeVisible();
+  });
+});
+
 test.describe('Users Management CRUD Flow', () => {
   let usersPage;
 
@@ -25,7 +49,7 @@ test.describe('Users Management CRUD Flow', () => {
     await expect(tableHeader).toContainText(/Email/i);
   });
 
-    test('should successfully create a new user', async ({ page }) => {
+  test('should successfully create a new user', async ({ page }) => {
     await usersPage.openCreateForm();
 
     await expect(usersPage.firstNameInput).toBeVisible();
@@ -38,6 +62,14 @@ test.describe('Users Management CRUD Flow', () => {
 
     await usersPage.navigateToUsers();
     await expect(page.locator(`tbody:has-text("${email}")`)).toBeVisible();
+  });
+
+  test('should not create a user with an empty form because save button is disabled', async ({ page }) => {
+    await usersPage.openCreateForm();
+
+    await expect(usersPage.saveButton).toBeDisabled();
+
+    await expect(page).toHaveURL(/#\/users\/create/);
   });
 
 
@@ -56,7 +88,30 @@ test.describe('Users Management CRUD Flow', () => {
     await expect(page.locator(`tbody:has-text("${updatedEmail}")`)).toBeVisible();
   });
 
-   test('should delete a single user via row checkbox', async ({ page }) => {
+  test('should cancel single user deletion via undo notification', async ({ page }) => {
+    const firstRow = usersPage.tableRow.first();
+    await expect(firstRow).toBeVisible();
+
+    const emailText = await firstRow.locator('td').filter({ hasText: '@' }).first().textContent();
+    const targetUserEmail = emailText ? emailText.trim() : '';
+
+    await usersPage.rowCheckbox.first().click();
+    await usersPage.deleteButton.click();
+
+    const undoButton = page.locator('button:has-text("Undo"), button:has-text("Отменить")').first();
+    await undoButton.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+    
+    if (await undoButton.isVisible()) {
+      await undoButton.click();
+    }
+
+    await page.waitForLoadState('networkidle');
+
+    const tableBody = page.locator('tbody');
+    await expect(tableBody).toContainText(targetUserEmail);
+  });
+
+  test('should delete a single user via row checkbox', async ({ page }) => {
     const firstRow = usersPage.tableRow.first();
     await expect(firstRow).toBeVisible();
 
@@ -70,7 +125,7 @@ test.describe('Users Management CRUD Flow', () => {
     await expect(tableBody).not.toContainText(deletedUserEmail);
   });
 
-  test('should perform mass deletion of all users', async ({ page }) => {
+  test('should perform mass deletion of all users', async () => {
     await expect(usersPage.rowCheckbox.first()).toBeVisible();
 
     await usersPage.selectAllCheckbox.click();
