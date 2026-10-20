@@ -56,35 +56,28 @@ test.describe('Users Management CRUD Flow', () => {
     await expect(page.locator(`tbody:has-text("${updatedEmail}")`)).toBeVisible();
   });
 
-  test('should delete a single user via row checkbox', async ({ page }) => {
-    const initialRowsCount = await usersPage.tableRow.count();
-    
-    if (initialRowsCount > 0) {
-      await usersPage.rowCheckbox.first().click();
-      await usersPage.deleteButton.click();
-      
-      await page.waitForTimeout(1000); 
+   test('should delete a single user via row checkbox', async ({ page }) => {
+    const firstRow = usersPage.tableRow.first();
+    await expect(firstRow).toBeVisible();
 
-      const newRowsCount = await usersPage.tableRow.count();
-      expect(newRowsCount).toBeLessThan(initialRowsCount);
-    }
+    const emailText = await firstRow.locator('td').filter({ hasText: '@' }).first().textContent();
+    const deletedUserEmail = emailText ? emailText.trim() : '';
+
+    await usersPage.rowCheckbox.first().click();
+    await usersPage.deleteButton.click();
+
+    const tableBody = page.locator('tbody');
+    await expect(tableBody).not.toContainText(deletedUserEmail);
   });
 
   test('should perform mass deletion of all users', async ({ page }) => {
-    const rowsCount = await usersPage.rowCheckbox.count();
-    
-    if (rowsCount > 0) {
-      await usersPage.selectAllCheckbox.click();
+    await expect(usersPage.rowCheckbox.first()).toBeVisible();
 
-      const firstCheckboxChecked = await usersPage.rowCheckbox.first().isChecked();
-      expect(firstCheckboxChecked).toBe(true);
+    await usersPage.selectAllCheckbox.click();
+    await expect(usersPage.rowCheckbox.first()).toBeChecked();
 
-      await usersPage.deleteButton.click();
-      
-      await page.waitForTimeout(2000); 
+    await usersPage.deleteButton.click();
 
-      const remainingRows = await usersPage.rowCheckbox.count();
-      expect(remainingRows).toBe(0);
-    }
+    await expect(usersPage.rowCheckbox).toHaveCount(0);
   });
 });

@@ -49,33 +49,28 @@ test.describe('Labels Management CRUD Flow', () => {
   });
 
   test('should delete a single label via row checkbox', async ({ page }) => {
-    const initialRowsCount = await labelsPage.tableRow.count();
-    
-    if (initialRowsCount > 0) {
-      await labelsPage.rowCheckbox.first().click();
-      await labelsPage.deleteButton.click();
-      
-      await page.waitForTimeout(1500); 
+    const firstRow = labelsPage.tableRow.first();
+    await expect(firstRow).toBeVisible();
 
-      const newRowsCount = await labelsPage.tableRow.count();
-      expect(newRowsCount).toBeLessThan(initialRowsCount);
-    }
+    const labelNameCell = firstRow.locator('td').nth(2); 
+    const labelNameText = await labelNameCell.textContent();
+    const deletedLabelName = labelNameText ? labelNameText.trim() : '';
+
+    await labelsPage.rowCheckbox.first().click();
+    await labelsPage.deleteButton.click();
+
+    const tableBody = page.locator('tbody');
+    await expect(tableBody).not.toContainText(deletedLabelName);
   });
 
   test('should perform mass deletion of all labels', async ({ page }) => {
-    const rowsCount = await labelsPage.rowCheckbox.count();
-    
-    if (rowsCount > 0) {
-      await labelsPage.selectAllCheckbox.click();
+    await expect(labelsPage.rowCheckbox.first()).toBeVisible();
 
-      const firstCheckboxChecked = await labelsPage.rowCheckbox.first().isChecked();
-      expect(firstCheckboxChecked).toBe(true);
+    await labelsPage.selectAllCheckbox.click();
+    await expect(labelsPage.rowCheckbox.first()).toBeChecked();
 
-      await labelsPage.deleteButton.click();
-      await page.waitForTimeout(2500); 
+    await labelsPage.deleteButton.click();
 
-      const remainingRows = await labelsPage.rowCheckbox.count();
-      expect(remainingRows).toBe(0);
-    }
+    await expect(labelsPage.rowCheckbox).toHaveCount(0);
   });
 });

@@ -52,34 +52,27 @@ test.describe('Statuses Management CRUD Flow', () => {
   });
 
   test('should delete a single status via row checkbox', async ({ page }) => {
-    const initialRowsCount = await statusesPage.tableRow.count();
-    
-    if (initialRowsCount > 0) {
-      await statusesPage.rowCheckbox.first().click();
-      await statusesPage.deleteButton.click();
-      
-      await page.waitForTimeout(1500); 
+    const firstRow = statusesPage.tableRow.first();
+    await expect(firstRow).toBeVisible();
 
-      const newRowsCount = await statusesPage.tableRow.count();
-      expect(newRowsCount).toBeLessThan(initialRowsCount);
-    }
+    const statusNameText = await firstRow.locator('td').nth(2).textContent();
+    const deletedStatusName = statusNameText ? statusNameText.trim() : '';
+
+    await statusesPage.rowCheckbox.first().click();
+    await statusesPage.deleteButton.click();
+
+    const tableBody = page.locator('tbody');
+    await expect(tableBody).not.toContainText(deletedStatusName);
   });
 
   test('should perform mass deletion of all statuses', async ({ page }) => {
-    const rowsCount = await statusesPage.rowCheckbox.count();
-    
-    if (rowsCount > 0) {
-      await statusesPage.selectAllCheckbox.click();
+    await expect(statusesPage.rowCheckbox.first()).toBeVisible();
 
-      const firstCheckboxChecked = await statusesPage.rowCheckbox.first().isChecked();
-      expect(firstCheckboxChecked).toBe(true);
+    await statusesPage.selectAllCheckbox.click();
+    await expect(statusesPage.rowCheckbox.first()).toBeChecked();
 
-      await statusesPage.deleteButton.click();
-      
-      await page.waitForTimeout(2500); 
+    await statusesPage.deleteButton.click();
 
-      const remainingRows = await statusesPage.rowCheckbox.count();
-      expect(remainingRows).toBe(0);
-    }
+    await expect(statusesPage.rowCheckbox).toHaveCount(0);
   });
 });

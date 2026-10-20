@@ -82,7 +82,7 @@ test.describe('Tasks and Kanban Board E2E Flow', () => {
         const targetStatusId = await targetColumn.getAttribute('data-rfd-droppable-id') || '2';
         
         await tasksPage.moveTask(taskId, targetStatusId);
-        await page.waitForTimeout(1000);
+    
 
         const finalSourceColumn = page.locator(`[data-rfd-droppable-id="${sourceStatusId}"]`);
         const finalTargetColumn = page.locator(`[data-rfd-droppable-id="${targetStatusId}"]`);
