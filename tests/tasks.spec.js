@@ -73,14 +73,23 @@ test.describe('Tasks and Kanban Board E2E Flow', () => {
       const taskId = await firstCard.getAttribute('data-rfd-draggable-id');
 
       if (taskId) {
+        const specificCardLocator = page.locator(`[data-rfd-draggable-id="${taskId}"]`);
+        
+        const sourceColumnContainer = page.locator('[data-rfd-droppable-id]').filter({ has: specificCardLocator });
+        const sourceStatusId = await sourceColumnContainer.getAttribute('data-rfd-droppable-id');
+
         const targetColumn = page.locator('[data-rfd-droppable-id]').nth(1);
         const targetStatusId = await targetColumn.getAttribute('data-rfd-droppable-id') || '2';
         
         await tasksPage.moveTask(taskId, targetStatusId);
-
         await page.waitForTimeout(1000);
 
-        await expect(tasksPage.taskCard(taskId)).toBeVisible();
+        const finalSourceColumn = page.locator(`[data-rfd-droppable-id="${sourceStatusId}"]`);
+        const finalTargetColumn = page.locator(`[data-rfd-droppable-id="${targetStatusId}"]`);
+
+        await expect(finalSourceColumn.locator(`[data-rfd-draggable-id="${taskId}"]`)).not.toBeVisible();
+
+        await expect(finalTargetColumn.locator(`[data-rfd-draggable-id="${taskId}"]`)).toBeVisible();
       }
     }
   });
