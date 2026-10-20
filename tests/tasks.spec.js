@@ -34,11 +34,33 @@ test.describe('Tasks and Kanban Board E2E Flow', () => {
     await expect(page.locator(`div:has-text("${uniqueTitle}")`).first()).toBeVisible();
   });
 
-    test('should successfully filter tasks by status', async ({ page }) => {
-    if (await tasksPage.filterStatusSelect.isVisible()) {
-      await tasksPage.filterByStatus('Draft');
-      await page.waitForLoadState('networkidle');
+   test('should successfully filter tasks by status', async ({ page }) => {
+  await page.goto('#/tasks');
+
+  const targetStatus = 'Draft';
+  await tasksPage.filterByStatus(targetStatus);
+  await page.waitForURL(/filter/);
+  await page.waitForLoadState('networkidle');
+
+  const columnHeaders = page.locator('.RaList-content').locator('h6').filter({ hasNot: page.locator('#react-admin-title') });
+  const columnsCount = await columnHeaders.count();
+
+  for (let i = 0; i < columnsCount; i++) {
+    const currentHeader = columnHeaders.nth(i);
+    
+    const columnNameText = await currentHeader.textContent();
+    const columnName = columnNameText ? columnNameText.trim() : '';
+
+    const currentColumnContainer = currentHeader.locator('xpath=..');
+    const taskCardsInColumn = currentColumnContainer.locator('a[aria-label="Edit"]');
+    const cardsCount = await taskCardsInColumn.count();
+
+    if (columnName === targetStatus) {
+      expect(cardsCount).toBeGreaterThan(0);
+    } else {
+      expect(cardsCount).toEqual(0);
     }
+  }
   });
 
     test('should successfully move task card between kanban columns via drag and drop', async ({ page }) => {

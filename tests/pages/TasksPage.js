@@ -20,7 +20,8 @@ export class TasksPage {
     this.taskCard = (taskId) => page.locator(`[data-rfd-draggable-id="${taskId}"]`);
     this.anyTaskCard = page.locator('[data-rfd-draggable-id]');
 
-    this.filterStatusSelect = page.locator('.filter-input-status_id [role="combobox"], [data-testid="filter-status"]');
+    // this.filterStatusSelect = page.locator('.filter-input-status_id [role="combobox"], [data-testid="filter-status"]');
+    this.filterStatusSelect = page.locator('.ra-input-status_id [role="combobox"], [data-source="status_id"] [role="combobox"]');
     this.filterAssigneeSelect = page.locator('.filter-input-assignee_id [role="combobox"], [data-testid="filter-assignee"]');
   }
 
