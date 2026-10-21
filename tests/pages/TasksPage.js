@@ -1,53 +1,62 @@
 export class TasksPage {
   constructor(page) {
     this.page = page;
+    this.tasksMenuButton = page.getByRole('menuitem', { name: 'Tasks', exact: true });
+    this.createButton = page.getByRole('link', { name: 'Create', exact: true });
+    this.saveButton = page.getByRole('button', { name: 'Save', exact: true });
+    this.deleteButton = page.getByRole('button', { name: 'Delete', exact: true });
+    this.titleInput = page.getByRole('textbox', { name: 'Title', exact: true });
+    this.contentInput = page.getByRole('textbox', { name: 'Content', exact: true });
+    this.assigneeSelect = page.getByRole('combobox', { name: /^Assignee\b/ });
+    this.statusSelect = page.getByRole('combobox', { name: /^Status\b/ });
+    this.taskCards = page.getByRole('button').filter({
+      has: page.getByRole('link', { name: 'Edit', exact: true }),
+    });
+  }
 
-    this.tasksMenuButton = page.locator('a[role="menuitem"][href="#/tasks"]')
-      .or(page.locator('a[href="#/tasks"]'))
-      .or(page.locator('[role="menuitem"]:has-text("Tasks")'))
-      .first();
+  taskCard(title) {
+    return this.taskCards.filter({ has: this.page.getByText(title, { exact: true }) });
+  }
 
-    this.createButton = page.locator('.RaList-actions a[href="#/tasks/create"]')
-      .or(page.locator('a[href="#/tasks/create"]')).first();
-    this.saveButton = page.locator('button[type="submit"]', { hasText: 'Save' });
+  kanbanColumn(statusName) {
+    return this.page.getByText(statusName, { exact: true })
+      .and(this.page.locator(':not([role="combobox"])'))
+      .locator('..');
+  }
 
-    this.titleInput = page.locator('input[name="title"]');
-    this.contentInput = page.locator('textarea[name="content"]');
-    this.assigneeSelect = page.locator('.ra-input-assignee_id [role="combobox"]');
-    this.statusSelect = page.locator('.ra-input-status_id [role="combobox"]');
+  cardsInColumn(statusName) {
+    return this.kanbanColumn(statusName).getByRole('button');
+  }
 
-    this.kanbanColumn = (statusId) => page.locator(`[data-rfd-droppable-id="${statusId}"]`);
-    this.taskCard = (taskId) => page.locator(`[data-rfd-draggable-id="${taskId}"]`);
-    this.anyTaskCard = page.locator('[data-rfd-draggable-id]');
-
-    this.filterStatusSelect = page.locator('.ra-input-status_id [role="combobox"], [data-source="status_id"] [role="combobox"]');
-    this.filterAssigneeSelect = page.locator('.filter-input-assignee_id [role="combobox"], [data-testid="filter-assignee"]');
+  taskInColumn(title, statusName) {
+    return this.cardsInColumn(statusName).filter({
+      has: this.page.getByText(title, { exact: true }),
+    });
   }
 
   async navigateToTasks() {
-    await this.tasksMenuButton.waitFor({ state: 'visible' });
     await this.tasksMenuButton.click();
+    await this.createButton.waitFor({ state: 'visible' });
     await this.page.waitForLoadState('networkidle');
   }
 
   async openCreateForm() {
-    await this.createButton.waitFor({ state: 'visible' });
     await this.createButton.click();
     await this.titleInput.waitFor({ state: 'visible' });
   }
 
-  async createTask(title, content, assigneeName = null, statusName = null) {
+  async saveTask(title, content, assigneeName = null, statusName = null) {
     await this.titleInput.fill(title);
     await this.contentInput.fill(content);
 
     if (assigneeName) {
       await this.assigneeSelect.click();
-      await this.page.locator(`li[role="option"]:has-text("${assigneeName}")`).click();
+      await this.page.getByRole('option', { name: assigneeName, exact: true }).click();
     }
 
     if (statusName) {
       await this.statusSelect.click();
-      await this.page.locator(`li[role="option"]:has-text("${statusName}")`).click();
+      await this.page.getByRole('option', { name: statusName, exact: true }).click();
     }
 
     await this.saveButton.click();
@@ -55,79 +64,29 @@ export class TasksPage {
   }
 
   async filterByStatus(statusName) {
-    await this.filterStatusSelect.click();
-    await this.page.locator(`li[role="option"]:has-text("${statusName}")`).click();
+    await this.statusSelect.click();
+    await this.page.getByRole('option', { name: statusName, exact: true }).click();
+    await this.page.waitForURL(/filter/);
     await this.page.waitForLoadState('networkidle');
   }
 
-   async moveTask(taskId, targetStatusId) {
-    const sourceCard = this.taskCard(taskId);
-    const targetColumn = this.kanbanColumn(targetStatusId);
-
-    await sourceCard.waitFor({ state: 'visible' });
-    await targetColumn.waitFor({ state: 'visible' });
-
-    const cardBounds = await sourceCard.boundingBox();
-    const columnBounds = await targetColumn.boundingBox();
-
-    if (!cardBounds || !columnBounds) {
-      throw new Error(`Не удалось рассчитать координаты для taskId: ${taskId}`);
-    }
-
-    const fromX = cardBounds.x + cardBounds.width / 2;
-    const fromY = cardBounds.y + cardBounds.height / 2;
-    const toX = columnBounds.x + columnBounds.width / 2;
-    const toY = columnBounds.y + 100;
-
-    await this.page.mouse.move(fromX, fromY);
-    await this.page.mouse.down();
-    
-    await this.page.mouse.move(toX, toY, { steps: 20 }); 
-    await this.page.mouse.up();
-
+  async moveTaskToNextColumn(title) {
+    const sourceCard = this.taskCard(title);
+    await sourceCard.focus();
+    await sourceCard.press('Space');
+    await sourceCard.press('ArrowRight');
+    await sourceCard.press('Space');
     await this.page.waitForLoadState('networkidle');
   }
 
-  async deleteTask(taskId) {
-    await this.openEditForm(taskId);
-    
-    const deleteButton = this.page.locator('button:has-text("Delete"), button:has-text("Удалить")').first();
-    await deleteButton.click();
-
-  }
-
-  async openEditForm(taskId) {
-    await this.page.goto(`/#/tasks/${taskId}`);
-    await this.page.waitForLoadState('networkidle');
-    
-    await this.titleInput.waitFor({ state: 'visible', timeout: 5000 });
-  }
-
-
-    async updateTask(title, content, assigneeName = null, statusName = null) {
+  async openEditForm(title) {
+    await this.taskCard(title).getByRole('link', { name: 'Edit', exact: true }).click();
     await this.titleInput.waitFor({ state: 'visible' });
-    await this.titleInput.clear();
-    await this.titleInput.fill(title);
-    
-    await this.contentInput.clear();
-    await this.contentInput.fill(content);
-
-    if (assigneeName) {
-      await this.assigneeSelect.locator('input, [role="button"]').first().click();
-      await this.page.locator(`li[role="option"]:has-text("${assigneeName}")`).first().click({ force: true });
-    }
-
-    if (statusName) {
-      await this.statusSelect.locator('input, [role="button"]').first().click();
-      
-      const option = this.page.locator(`li[role="option"]:has-text("${statusName}")`).first();
-      await option.waitFor({ state: 'attached', timeout: 3000 });
-      
-      await option.click({ force: true });
-    }
-
-    await this.saveButton.click();
-    await this.page.waitForLoadState('networkidle');
   }
 
+  async deleteTask(title) {
+    await this.openEditForm(title);
+    await this.deleteButton.click();
+    await this.createButton.waitFor({ state: 'visible' });
+  }
 }

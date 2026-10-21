@@ -1,15 +1,15 @@
 export class AuthPage {
   constructor(page) {
     this.page = page;
-    
-    this.usernameInput = page.locator('input[name="username"]');
-    this.passwordInput = page.locator('input[name="password"]');
-    
-    this.submitButton = page.locator('button[type="submit"]', { hasText: 'Sign in' });
-    
-    this.profileButton = page.locator('button[aria-label="Profile"]');
-    
-    this.logoutButton = page.locator('li.logout, li[role="menuitem"]:has-text("Logout")');
+
+    this.usernameInput = page.getByRole('textbox', { name: 'Username', exact: true });
+    this.passwordInput = page.getByLabel('Password');
+
+    this.submitButton = page.getByRole('button', { name: 'Sign in', exact: true });
+
+    this.profileButton = page.getByRole('button', { name: 'Profile', exact: true });
+
+    this.logoutButton = page.getByRole('menuitem', { name: 'Logout', exact: true });
   }
 
   async navigate() {

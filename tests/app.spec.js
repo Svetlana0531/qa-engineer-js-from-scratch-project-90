@@ -1,27 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test.describe('Application Initial Loading and Layout', () => {
-
-  test('application renders successfully on the main page with visible login form', async ({ page }) => {
+  test('application renders successfully on the main page with visible login form', async ({ authPage, page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
 
-    const usernameInput = page.locator('input[name="username"]');
-    await expect(usernameInput).toBeVisible();
-
-    const passwordInput = page.locator('input[name="password"]');
-    await expect(passwordInput).toBeVisible();
-
-    const signInButton = page.locator('button[type="submit"]').or(page.getByRole('button'));
-    await expect(signInButton.first()).toBeVisible();
+    await expect(authPage.usernameInput).toBeVisible();
+    await expect(authPage.passwordInput).toBeVisible();
+    await expect(authPage.submitButton).toBeVisible();
   });
 
-  test('application navigates to the login page and provides accessibility options', async ({ page }) => {
-    await page.goto('/#/login');
-    await page.waitForLoadState('networkidle');
-
-    const usernameInput = page.locator('input[name="username"]').first();
-    await expect(usernameInput).toBeEditable();
+  test('application navigates to the login page and provides accessibility options', async ({ authPage }) => {
+    await expect(authPage.usernameInput).toBeEditable();
   });
-
 });

@@ -1,51 +1,31 @@
-export class StatusesPage {
+import { ListPage } from './ListPage.js';
+
+export class StatusesPage extends ListPage {
   constructor(page) {
-    this.page = page;
-
-    this.statusesMenuButton = page.locator('a[role="menuitem"][href="#/task_statuses"]')
-      .or(page.locator('a[role="menuitem"][href="#/statuses"]'));
-
-    this.createButton = page.locator('a[href="#/task_statuses/create"], a[href="#/statuses/create"]');
-    this.saveButton = page.locator('button[type="submit"]', { hasText: 'Save' });
-    this.deleteButton = page.locator('[data-test="bulk-actions-toolbar"] button[aria-label="Delete"]');
-
-    this.nameInput = page.locator('input[name="name"]');
-    this.slugInput = page.locator('input[name="slug"]');
-
-    this.tableRow = page.locator('tbody tr.RaDatagrid-row');
-    this.selectAllCheckbox = page.locator('thead input[type="checkbox"][aria-label="Select all"]');
-    this.rowCheckbox = page.locator('tbody input[type="checkbox"]');
+    super(page, 'Task statuses', 'Name');
+    this.nameInput = this.formInput;
+    this.slugInput = page.getByRole('textbox', { name: 'Slug', exact: true });
+    this.nameColumnHeader = page.getByRole('columnheader').filter({ hasText: /^Name$/ });
+    this.slugColumnHeader = page.getByRole('columnheader').filter({ hasText: /^Slug$/ });
   }
 
-  async navigateToStatuses() {
-    await this.statusesMenuButton.waitFor({ state: 'visible' });
-    await this.statusesMenuButton.click();
-    await this.page.waitForLoadState('networkidle');
-  }
-
-  async openCreateForm() {
-    await this.createButton.waitFor({ state: 'visible' });
-    await this.createButton.click();
-    await this.nameInput.waitFor({ state: 'visible' });
+  getRowCells(id) {
+    const row = this.getRow(id);
+    return {
+      name: row.getByRole('cell').nth(2),
+      slug: row.getByRole('cell').nth(3),
+    };
   }
 
   async createStatus(name, slug) {
     await this.nameInput.fill(name);
     await this.slugInput.fill(slug);
-    await this.saveButton.click();
-    await this.page.waitForLoadState('networkidle');
-  }
-
-  async openEditFormOfFirstStatus() {
-    const firstRowCell = this.tableRow.first().locator('td').nth(1);
-    await firstRowCell.waitFor({ state: 'visible' });
-    await firstRowCell.click();
-    await this.nameInput.waitFor({ state: 'visible' });
+    await this.save();
   }
 
   async editStatus(updatedData) {
     if (updatedData.name) await this.nameInput.fill(updatedData.name);
     if (updatedData.slug) await this.slugInput.fill(updatedData.slug);
-    await this.saveButton.click();
+    await this.save();
   }
 }

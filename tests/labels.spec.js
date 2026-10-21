@@ -1,75 +1,50 @@
-import { test, expect } from '@playwright/test';
-import { AuthPage } from './pages/AuthPage.js';
-import { LabelsPage } from './pages/LabelsPage.js';
+import { test, expect } from './fixtures.js';
+import { seedData } from './data.js';
 
 test.describe('Labels Management CRUD Flow', () => {
-  let labelsPage;
+  test('should successfully display labels list with Name column', async ({ labelsPage }) => {
+    await expect(labelsPage.nameColumnHeader).toBeVisible();
 
-  test.beforeEach(async ({ page }) => {
-    const authPage = new AuthPage(page);
-    labelsPage = new LabelsPage(page);
-
-    await authPage.navigate();
-    await authPage.login('login', 'password');
-    await page.waitForLoadState('networkidle');
-    
-    await labelsPage.navigateToLabels();
+    const label = labelsPage.getRowCells(seedData.label.id);
+    await expect(label.name).toHaveText(seedData.label.name);
   });
 
-  test('should successfully display labels list with Name column', async ({ page }) => {
-    await expect(labelsPage.tableRow.first()).toBeVisible();
-
-    const tableHeader = page.locator('thead');
-    await expect(tableHeader).toContainText(/Name/i);
-  });
-
-  test('should successfully create a new label', async ({ page }) => {
+  test('should successfully create a new label', async ({ labelsPage, page, testData }) => {
     await labelsPage.openCreateForm();
-
     await expect(labelsPage.nameInput).toBeVisible();
 
-    const uniqueLabelName = `Label_${Date.now()}`;
-    await labelsPage.createLabel(uniqueLabelName);
+    await labelsPage.createLabel(testData.label.name);
 
     await expect(page).toHaveURL(/.*(label|tag).*/);
-    
-    await labelsPage.navigateToLabels();
-    await expect(page.locator(`tbody:has-text("${uniqueLabelName}")`)).toBeVisible();
+    await labelsPage.navigate();
+    await expect(labelsPage.getCell(testData.label.name)).toBeVisible();
   });
 
-  test('should successfully edit label name', async ({ page }) => {
-    await labelsPage.openEditFormOfFirstLabel();
+  test('should successfully edit label name', async ({ labelsPage, testData }) => {
+    await labelsPage.openEditFormOfFirstRow();
+    await labelsPage.editLabel(testData.label.updatedName);
 
-    const updatedLabelName = `UpdatedLabel_${Date.now()}`;
-    await labelsPage.editLabel(updatedLabelName);
-
-    await page.waitForLoadState('networkidle');
-    await labelsPage.navigateToLabels();
-    await expect(page.locator(`tbody:has-text("${updatedLabelName}")`)).toBeVisible();
+    await labelsPage.navigate();
+    await expect(labelsPage.getCell(testData.label.updatedName)).toBeVisible();
   });
 
-  test('should delete a single label via row checkbox', async ({ page }) => {
-    const firstRow = labelsPage.tableRow.first();
-    await expect(firstRow).toBeVisible();
+  test('should delete a single label via row checkbox', async ({ labelsPage }) => {
+    await expect(labelsPage.firstRow).toBeVisible();
+    await expect(labelsPage.firstRowValueCell).toHaveText(seedData.label.name);
 
-    const labelNameCell = firstRow.locator('td').nth(2); 
-    const labelNameText = await labelNameCell.textContent();
-    const deletedLabelName = labelNameText ? labelNameText.trim() : '';
+    await labelsPage.selectFirstRow();
+    await labelsPage.deleteSelectedRows();
 
-    await labelsPage.rowCheckbox.first().click();
-    await labelsPage.deleteButton.click();
-
-    const tableBody = page.locator('tbody');
-    await expect(tableBody).not.toContainText(deletedLabelName);
+    await expect(labelsPage.getCell(seedData.label.name)).not.toBeVisible();
   });
 
-  test('should perform mass deletion of all labels', async ({ page }) => {
-    await expect(labelsPage.rowCheckbox.first()).toBeVisible();
+  test('should perform mass deletion of all labels', async ({ labelsPage }) => {
+    await expect(labelsPage.firstRowCheckbox).toBeVisible();
 
-    await labelsPage.selectAllCheckbox.click();
-    await expect(labelsPage.rowCheckbox.first()).toBeChecked();
+    await labelsPage.selectAllRows();
+    await expect(labelsPage.firstRowCheckbox).toBeChecked();
 
-    await labelsPage.deleteButton.click();
+    await labelsPage.deleteSelectedRows();
 
     await expect(labelsPage.rowCheckbox).toHaveCount(0);
   });

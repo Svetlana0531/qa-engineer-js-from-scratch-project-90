@@ -1,29 +1,18 @@
-import { test, expect } from '@playwright/test';
-import { AuthPage } from './pages/AuthPage.js';
+import { test, expect } from './fixtures.js';
+import { credentials } from './data.js';
 
 test.describe('Authentication Flow', () => {
+  test('should successfully log in with any credentials', async ({ authPage, page }) => {
+    await authPage.login(credentials.username, credentials.password);
 
-  test('should successfully log in with any credentials', async ({ page }) => {
-    const authPage = new AuthPage(page);
-
-    await authPage.navigate();
-    await authPage.login('admin', 'admin');
-
-    await expect(page).toHaveURL(/#\/$/); 
-
+    await expect(page).toHaveURL(/#\/$/);
     await expect(authPage.profileButton).toBeVisible();
   });
 
-  test('should successfully log out of the application', async ({ page }) => {
-    const authPage = new AuthPage(page);
-
-    await authPage.navigate();
-    await authPage.login('admin', 'admin');
-    
+  test('should successfully log out of the application', async ({ authPage, authenticatedPage }) => {
     await authPage.logout();
 
-    await expect(page).toHaveURL(/#\/login/);
+    await expect(authenticatedPage).toHaveURL(/#\/login/);
     await expect(authPage.usernameInput).toBeVisible();
   });
-
 });

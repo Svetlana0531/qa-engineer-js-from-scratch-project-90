@@ -1,53 +1,26 @@
-export class LabelsPage {
+import { ListPage } from './ListPage.js';
+
+export class LabelsPage extends ListPage {
   constructor(page) {
-    this.page = page;
-
-    this.labelsMenuButton = page.locator('nav a[href*="label"]')
-      .or(page.locator('a[href="#/labels"]'))
-      .or(page.locator('[role="menuitem"]:has-text("Label")'))
-      .or(page.locator('.ra-menu a[href*="label"]'))
-      .first();
-
-    this.createButton = page.locator('.RaList-actions a[href="#/labels/create"]')
-      .or(page.locator('a[href="#/labels/create"]')).first();
-      
-    this.saveButton = page.locator('button[type="submit"]', { hasText: 'Save' });
-    this.deleteButton = page.locator('[data-test="bulk-actions-toolbar"] button[aria-label="Delete"]');
-
-    this.nameInput = page.locator('input[name="name"]');
-
-    this.tableRow = page.locator('tbody tr.RaDatagrid-row');
-    this.selectAllCheckbox = page.locator('thead input[type="checkbox"][aria-label="Select all"]');
-    this.rowCheckbox = page.locator('tbody input[type="checkbox"]');
+    super(page, 'Labels', 'Name');
+    this.nameInput = this.formInput;
+    this.nameColumnHeader = page.getByRole('columnheader').filter({ hasText: /^Name$/ });
   }
 
-  async navigateToLabels() {
-    await this.labelsMenuButton.waitFor({ state: 'visible' });
-    await this.labelsMenuButton.click();
-    await this.page.waitForLoadState('networkidle');
-  }
-
-  async openCreateForm() {
-    await this.createButton.waitFor({ state: 'visible' });
-    await this.createButton.click();
-    await this.nameInput.waitFor({ state: 'visible' });
+  getRowCells(id) {
+    const row = this.getRow(id);
+    return {
+      name: row.getByRole('cell').nth(2),
+    };
   }
 
   async createLabel(name) {
     await this.nameInput.fill(name);
-    await this.saveButton.click();
-    await this.page.waitForLoadState('networkidle');
-  }
-
-  async openEditFormOfFirstLabel() {
-    const firstRowCell = this.tableRow.first().locator('td.column-name');
-    await firstRowCell.waitFor({ state: 'visible' });
-    await firstRowCell.click();
-    await this.nameInput.waitFor({ state: 'visible' });
+    await this.save();
   }
 
   async editLabel(name) {
     await this.nameInput.fill(name);
-    await this.saveButton.click();
+    await this.save();
   }
 }

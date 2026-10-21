@@ -1,137 +1,95 @@
-import { test, expect } from '@playwright/test';
-import { AuthPage } from './pages/AuthPage.js';
-import { UsersPage } from './pages/UsersPage.js';
+import { test, expect } from './fixtures.js';
+import { invalidData, seedData, validationMessages } from './data.js';
 
 test.describe('Login Negative Scenarios', () => {
-  let authPage;
+  test('should show validation error when trying to login with an empty form', async ({ authPage }) => {
+    await authPage.submitButton.click();
 
-  test.beforeEach(async ({ page }) => {
-    authPage = new AuthPage(page);
-    await authPage.navigate();
+    await expect(authPage.usernameInput).toHaveAccessibleDescription(validationMessages.required);
   });
 
-  test('should show validation error when trying to login with an empty form', async ({ page }) => {
-    await page.locator('button[type="submit"]').click();
+  test('should show validation error when username is missing', async ({ authPage }) => {
+    await authPage.passwordInput.fill(invalidData.password);
+    await authPage.submitButton.click();
 
-    const errorText = page.locator(':text("Required"), :text("Обязательное поле")');
-    await expect(errorText.first()).toBeVisible();
-  });
-
-  test('should show validation error when username is missing', async ({ page }) => {
-    await page.locator('input[name="password"]').fill('any-password');
-    await page.locator('button[type="submit"]').click();
-
-    const errorText = page.locator(':text("Required"), :text("Обязательное поле")');
-    await expect(errorText.first()).toBeVisible();
+    await expect(authPage.usernameInput).toHaveAccessibleDescription(validationMessages.required);
   });
 });
 
 test.describe('Users Management CRUD Flow', () => {
-  let usersPage;
+  test('should successfully display users list with required columns', async ({ usersPage }) => {
+    await expect(usersPage.firstNameColumnHeader).toBeVisible();
+    await expect(usersPage.lastNameColumnHeader).toBeVisible();
+    await expect(usersPage.emailColumnHeader).toBeVisible();
 
-  test.beforeEach(async ({ page }) => {
-    const authPage = new AuthPage(page);
-    usersPage = new UsersPage(page);
-
-    await authPage.navigate();
-    await authPage.login('login', 'password');
-    await page.waitForLoadState('networkidle');
-    
-    await usersPage.navigateToUsers();
+    const user = usersPage.getRowCells(seedData.user.id);
+    await expect(user.firstName).toHaveText(seedData.user.firstName);
+    await expect(user.lastName).toHaveText(seedData.user.lastName);
+    await expect(user.email).toHaveText(seedData.user.email);
   });
 
-  test('should successfully display users list with required columns', async ({ page }) => {
-    await expect(usersPage.tableRow.first()).toBeVisible();
-
-    const tableHeader = page.locator('thead');
-    await expect(tableHeader).toContainText(/First name/i);
-    await expect(tableHeader).toContainText(/Last name/i);
-    await expect(tableHeader).toContainText(/Email/i);
-  });
-
-  test('should successfully create a new user', async ({ page }) => {
+  test('should successfully create a new user', async ({ usersPage, page, testData }) => {
     await usersPage.openCreateForm();
 
     await expect(usersPage.firstNameInput).toBeVisible();
     await expect(usersPage.emailInput).toBeVisible();
 
-    const email = `test_${Date.now()}@hexlet.io`;
-    await usersPage.createUser('John', 'Doe', email);
+    const { firstName, lastName, email } = testData.user;
+    await usersPage.createUser(firstName, lastName, email);
 
     await expect(page).toHaveURL(/#\/users/);
-
-    await usersPage.navigateToUsers();
-    await expect(page.locator(`tbody:has-text("${email}")`)).toBeVisible();
+    await usersPage.navigate();
+    await expect(usersPage.getCell(email)).toBeVisible();
   });
 
-  test('should not create a user with an empty form because save button is disabled', async ({ page }) => {
+  test('should not create a user with an empty form because save button is disabled', async ({ usersPage, page }) => {
     await usersPage.openCreateForm();
 
     await expect(usersPage.saveButton).toBeDisabled();
-
     await expect(page).toHaveURL(/#\/users\/create/);
   });
 
+  test('should edit user data and validate email field', async ({ usersPage, testData }) => {
+    await usersPage.openEditFormOfFirstRow();
 
-  test('should edit user data and validate email field', async ({ page }) => {
-    await usersPage.openEditFormOfFirstUser();
-
-    await usersPage.emailInput.fill('invalid-email-format');
+    await usersPage.emailInput.fill(invalidData.email);
     await usersPage.saveButton.click();
-    
-    await expect(usersPage.emailError.first()).toBeVisible();
 
-    const updatedEmail = `updated_${Date.now()}@hexlet.io`;
-    await usersPage.editUser({ firstName: 'Alex', email: updatedEmail });
+    await expect(usersPage.emailInput).toHaveAccessibleDescription(validationMessages.invalidEmail);
 
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator(`tbody:has-text("${updatedEmail}")`)).toBeVisible();
+    await usersPage.editUser(testData.user.updated);
+
+    await expect(usersPage.getCell(testData.user.updated.email)).toBeVisible();
   });
 
-  test('should cancel single user deletion via undo notification', async ({ page }) => {
-    const firstRow = usersPage.tableRow.first();
-    await expect(firstRow).toBeVisible();
+  test('should cancel single user deletion via undo notification', async ({ usersPage }) => {
+    await expect(usersPage.firstRow).toBeVisible();
+    await expect(usersPage.firstRowValueCell).toHaveText(seedData.user.email);
 
-    const emailText = await firstRow.locator('td').filter({ hasText: '@' }).first().textContent();
-    const targetUserEmail = emailText ? emailText.trim() : '';
+    await usersPage.selectFirstRow();
+    await usersPage.deleteSelectedRows();
+    await usersPage.undoButton.click();
 
-    await usersPage.rowCheckbox.first().click();
-    await usersPage.deleteButton.click();
-
-    const undoButton = page.locator('button:has-text("Undo"), button:has-text("Отменить")').first();
-    await undoButton.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
-    
-    if (await undoButton.isVisible()) {
-      await undoButton.click();
-    }
-
-    await page.waitForLoadState('networkidle');
-
-    const tableBody = page.locator('tbody');
-    await expect(tableBody).toContainText(targetUserEmail);
+    await expect(usersPage.getCell(seedData.user.email)).toBeVisible();
   });
 
-  test('should delete a single user via row checkbox', async ({ page }) => {
-    const firstRow = usersPage.tableRow.first();
-    await expect(firstRow).toBeVisible();
+  test('should delete a single user via row checkbox', async ({ usersPage }) => {
+    await expect(usersPage.firstRow).toBeVisible();
+    await expect(usersPage.firstRowValueCell).toHaveText(seedData.user.email);
 
-    const emailText = await firstRow.locator('td').filter({ hasText: '@' }).first().textContent();
-    const deletedUserEmail = emailText ? emailText.trim() : '';
+    await usersPage.selectFirstRow();
+    await usersPage.deleteSelectedRows();
 
-    await usersPage.rowCheckbox.first().click();
-    await usersPage.deleteButton.click();
-
-    const tableBody = page.locator('tbody');
-    await expect(tableBody).not.toContainText(deletedUserEmail);
+    await expect(usersPage.getCell(seedData.user.email)).not.toBeVisible();
   });
 
-  test('should perform mass deletion of all users', async () => {
-    await expect(usersPage.rowCheckbox.first()).toBeVisible();
+  test('should perform mass deletion of all users', async ({ usersPage }) => {
+    await expect(usersPage.firstRowCheckbox).toBeVisible();
 
-    await usersPage.selectAllCheckbox.click();
-    await expect(usersPage.rowCheckbox.first()).toBeChecked();
+    await usersPage.selectAllRows();
+    await expect(usersPage.firstRowCheckbox).toBeChecked();
 
-    await usersPage.deleteButton.click();
+    await usersPage.deleteSelectedRows();
 
     await expect(usersPage.rowCheckbox).toHaveCount(0);
   });
